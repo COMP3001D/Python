@@ -1,0 +1,33 @@
+<!-- API key AIzaSyCrbYNas_7lCcqISIYGGHVD3iOC6vselfU -->
+<html>
+	<head>
+		<script src="jquery-1.8.2.js"></script>
+		<script type="text/javascript">
+			$(document).ready(function(){
+					$('#button').bind("click", function(){
+						getPeople();
+						});
+					});
+		function getPeople(){
+			var str = $('#text').val();
+			$.getJSON("https://www.googleapis.com/plus/v1/people?key=AIzaSyCrbYNas_7lCcqISIYGGHVD3iOC6vselfU&query=" + str,
+					function(data){
+					$('p').remove();
+					$.each(data.items, function(i, item){
+						$('<p> ' + 
+							'<a href="' + item.selfLink + '">' + item.displayName + '</a>' +
+							'<img src="' + item.image.url + '" alt="' + item.displayName +
+							'"></p>').appendTo('#people');
+						});
+					});
+		}
+		</script>
+	</head>
+	<body>
+		<h1> Google+ People Search </h1>
+		Name
+		<input id="text" name="searchterm"></textarea>
+		<input id="button" type="submit" value="You feeling lucky, punk!?">
+		<div id="people"></div>
+	</body>
+</html>
