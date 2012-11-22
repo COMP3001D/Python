@@ -16,3 +16,12 @@ class BookUsers(db.Model):
     ID = db.StringProperty()
     Email = db.EmailProperty()
     PasswordHash = db.StringProperty()
+
+class Search(webapp2.RequestHandler):
+	def get(self):
+		self.response.headers['Content-Type'] = 'application/javascript'
+		self.response.write('{"Message":"Hello"}');
+
+app = webapp2.WSGIApplication([('/Search', Search)],
+				debug = True)
+
