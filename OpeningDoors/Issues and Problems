@@ -1,0 +1,5 @@
+Main problems:
+Problem:
+	- All margins were not displayed correctly even after the “Reset CSS”, and there were several gaps in the picture because of it
+
+Solution: Instead of Margins, left and right attributes were used which solved the image display problem both in Firefox and Chrome.

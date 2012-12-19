@@ -1,0 +1,65 @@
+
+*, html, body {
+   padding:auto;
+   margin:auto;
+}
+  
+ body {
+ 
+ 	/* background-repeat: repeat-x repeat-y; */
+	background-color: #4f3722;
+	/* background-image: url('../images/backWall.jpg'); */
+	height: 100%;
+ }
+ 
+ img {
+     border: none;
+     display: block;
+ }
+ 
+ .doorFrame {
+    z-index: 1;	
+ }
+ 
+ .leftDoor {
+	width: 23%;
+	height: 94%;
+	left: 28%;
+	top: 4%;
+	position: absolute;
+	z-index: 2;
+	
+}
+
+.rightDoor {
+	/* Use different cursor */
+	cursor: move;
+	width: 23%;
+	height: 94%;
+	right: 28%;
+	top: 4%;
+	position: absolute;
+	z-index: 2;
+	
+}
+
+.doorFrame img {
+	width: 50%;
+	height: 100%;
+	position: absolute;
+	
+	/* Half image will be shifted */
+	margin-left: 25%
+	
+	
+}
+
+.rightDoor img { 
+	width: 100%;
+	height: 100%;
+}
+
+.leftDoor img { 
+	width: 100%;
+	height: 100%;
+}
