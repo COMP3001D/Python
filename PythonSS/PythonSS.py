@@ -1,5 +1,6 @@
 import webapp2
 import random
+import hashlib
 
 from google.appengine.ext import db
 
@@ -13,8 +14,6 @@ class Books(db.Model):
     Genre = db.StringProperty()
 
 class BookUsers(db.Model):
-    Name = db.StringProperty()
-    ID = db.StringProperty()
     Email = db.EmailProperty()
     PasswordHash = db.StringProperty()
 
@@ -37,6 +36,11 @@ list of books. Can be accessed through comp3001teamd.appspot.com/getUserList?que
 
 GetAll: Returns a list of all books in the library. It returns a JSON object containing a list of books.
 Can be accessed through comp3001teamd.appspot.com/getAll (don't think this requires a query string)
+
+Register: This is for registering a user. It can be accessed using the post method. It requires the user,
+password and email address to exist in the query string. It returns a text/plain document as a response.
+It returns 0 if the username already exists and 1 if it doesn't and has been added to the database
+The url for this is comp3001teamd.appspot.com/register.
 
 Note: comp3001teamd.appspot.com on it's own should not return anything in future, so don't use it.""")
 
@@ -132,6 +136,31 @@ class GetList(webapp2.RequestHandler):
                                     }]}
                                 """)
 
+class AddAdmin(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers['Content-Type'] = 'text/plain'
+        e = BookUsers(key_name = "Am")
+        e.Email = "am@am.am"
+        e.PasswordHash = "12345"
+        e.put()
+        self.response.write("Done")
+
+class Register(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers['Content-Type'] = 'text/plain'
+        username = self.request.get('name')
+        user = BookUsers.get_by_key_name(username)
+        if user is None:
+            password = self.request.get('password');
+            email = self.request.get('email');
+            e = BookUsers(key_name = username)
+            e.Email = email
+            e.PasswordHash = hashlib.sha1(password).hexdigest()
+            e.put()
+            self.response.write("1")
+        else:
+            self.response.write("0")
+
 class GetAll(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -186,6 +215,8 @@ app = webapp2.WSGIApplication([('/', Main),
                                ('/search', Search),
                                ('/login', Login),
                                ('/getUserList', GetList),
+                               ('/register', Register),
+                               ('/addAdmin', AddAdmin),
                                ('/getAll', GetAll)],
 				debug = True)
 
