@@ -26,10 +26,9 @@ Search: This is the handler for searching through the database of books and can 
 comp3001teamd.appspot.com/search?querystringhere. Currently the query_string is not used except for
 the title field. It returns a JSON object containing a list of books
 
-Login: For logging users in to the app. this returns a plaintext document containing True or False
-indicating whether the user was authenticated or not. This is accessed through
-comp3001teamd.appspot.com/login?querystringhere. Enter password=1 for successful login or 0 for
-fail login, anything else and the result will be random.
+Login: For logging users in to the app. this returns a plaintext document containing 1 or 0
+indicating whether the user was authenticated or not respectively. This is accessed through
+"comp3001teamd.appspot.com/login?username=xyz&password=xyz".
 
 GetList: For returning a list of books the user had bookmarked. Returns a JSON object containing a
 list of books. Can be accessed through comp3001teamd.appspot.com/getUserList?querystringhere
@@ -40,7 +39,7 @@ Can be accessed through comp3001teamd.appspot.com/getAll (don't think this requi
 Register: This is for registering a user. It can be accessed using the post method. It requires the user,
 password and email address to exist in the query string. It returns a text/plain document as a response.
 It returns 0 if the username already exists and 1 if it doesn't and has been added to the database
-The url for this is comp3001teamd.appspot.com/register.
+The url for this is "comp3001teamd.appspot.com/register?name=xyz&password=xyz&email=xyz@xyz.xyz".
 
 Note: comp3001teamd.appspot.com on it's own should not return anything in future, so don't use it.""")
 
@@ -101,20 +100,34 @@ class Search(webapp2.RequestHandler):
                                     }]}
                                 """)
 
-class Login(webapp2.RequestHandler):
+class Login2(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/plain'
         password = self.request.get('password')
         if password == '1':
-            self.response.write('True')
+            self.response.write('1')
         elif password == '0':
-            self.response.write('False')
+            self.response.write('0')
         else:
             num = random.randint(0, 1);
             if num == 1:
-                self.response.write('True')
+                self.response.write('1')
             else:
-                self.response.write('False')
+                self.response.write('0')
+
+class Login(webapp2.RequestHandler):
+    def post(self):
+        self.response.headers['Content-Type'] = 'text/plain'
+	username = self.request.get('username')
+	passhash = hashlib.sha1(self.request.get('password')).hexdigest()
+	user = BookUsers.get_by_key_name(username);
+	if user is None:
+	    self.response.write("01")
+	    return
+	elif passhash != user.PasswordHash:
+	    self.response.write("02")
+	else:
+	    self.response.write("1")
 
 class GetList(webapp2.RequestHandler):
     def get(self):
@@ -141,7 +154,7 @@ class AddAdmin(webapp2.RequestHandler):
         self.response.headers['Content-Type'] = 'text/plain'
         e = BookUsers(key_name = "Am")
         e.Email = "am@am.am"
-        e.PasswordHash = "12345"
+        e.PasswordHash = hashlib.sha1("12345").hexdigest()
         e.put()
         self.response.write("Done")
 
