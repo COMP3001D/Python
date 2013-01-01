@@ -28,9 +28,9 @@ class Main(webapp2.RequestHandler):
         self.response.write("""This page describes the handlers that have been coded so far
 
 Search: This is the handler for searching through the database of books and can be accessed through
-"comp3001teamd.appspot.com/search?querystringhere". Currently the query_string is not used except for
-the title field. It returns a JSON object containing a list of books, this is still a test stub.
-It is accessed using the get method
+"comp3001teamd.appspot.com/search?title=xyz&author=xyz&year=x&ISBN=xyz&publisher=xyz&genre=xyz".
+Each field is optional. An empty query string will return an empty list of books. It returns a JSON
+object containing a list of books, this is still a test stub. It is accessed using the get method
 
 Login: For logging users in to the app. this returns a plaintext document containing 1 or 0
 indicating whether the user was authenticated or not respectively. This is accessed through
@@ -75,62 +75,85 @@ Note: comp3001teamd.appspot.com on it's own should not return anything in future
 
 Good luck and good night.""")
 
-class Search(webapp2.RequestHandler): # TODO replace test stub
+class Search(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
-        booktitle = self.request.get('title')
-        if booktitle.lower().replace(" ", "") == "harrypotter":
-            self.response.write("""{ "books" : [{
-                                    "title": "Harry Potter and the Philosopher's Stone",
-                                    "author": "J. K. Rowling",
-                                    "year": "1997",
-                                    "ISBN": "111",
-                                    "publisher": "Bloomsbury",
-                                    "genres": "Fantasy"
-                                    },
-                                    {
-                                    "title": "Harry Potter and the Chamber of Secrets",
-                                    "author": "J. K. Rowling",
-                                    "year": "1998",
-                                    "ISBN": "112",
-                                    "publisher": "Bloomsbury",
-                                    "genres": "Fantasy"
-                                    }]}
-                                """)
-        elif booktitle.lower().replace(" ", "") == "artemisfowl":
-            self.response.write("""{ "books" : [{
-                                    "title": "Artemis Fowl",
-                                    "author": "Eoin Colfer",
-                                    "year": "2001",
-                                    "ISBN": "113",
-                                    "publisher": "Viking Press",
-                                    "genres": "Young-Adult Fantasy"
-                                    },
-                                    { "title": "Artemis Fowl: The Arctic Incident",
-                                    "author": "Eoin Colfer",
-                                    "year": "2002",
-                                    "ISBN": "114",
-                                    "publisher": "Hyperion Books"
-                                    "genres": "Childrens Fantasy"
-                                    }]}
-                                """)
-        else:
-            self.response.write("""{ "books" : [{
-                                    "title": "The Hobbit",
-                                    "author": "J. R. R. Tolkien",
-                                    "year": "1937",
-                                    "ISBN": "115",
-                                    "publisher": "George Allen & Unwin",
-                                    "genres": "High-fantasy Adventure"
-                                    },
-                                    { "title": "A Study in Scarlet",
-                                    "author": "Arthur Conan Doyle",
-                                    "year": "1887",
-                                    "ISBN": "116",
-                                    "publisher": "Ward Lock & Co",
-                                    "genres" : "Detective Crime Mystery Novel"
-                                    }]}
-                                """)
+        title = self.request.get('title')
+        author = self.request.get('author')
+        year = self.request.get('year')
+        ISBN = self.request.get('ISBN')
+        publisher = self.request.get('publisher')
+        genre = self.request.get('genre')
+        booksquery = db.GqlQuery("SELECT * FROM Books")
+        number = booksquery.count()
+        books = [0] * number
+        for x in range(number):
+            books[x] = booksquery[x]
+        scores = [0] * number
+        for x in range(number):
+            if title != "":
+                tt = title.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
+                tc = books[x].Title.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
+                if tt == tc:
+                    scores[x] += 2
+                elif tc.find(tt) != -1:
+                    scores[x] += 1
+            if author != "":
+                at = author.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
+                ac = books[x].Author.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
+                if at == ac:
+                    scores[x] += 2
+                elif ac.find(at) != -1:
+                    scores[x] += 1
+            if year != "":
+                year = int(year)
+                if year == books[x].Year:
+                    scores[x] += 2
+            if ISBN != "":
+                if ISBN == books[x].ISBN:
+                    scores[x] += 2
+                elif Books[x].find(ISBN) != -1:
+                    scores[x] += 1
+            if publisher != "":
+                pt = publisher.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
+                pc=books[x].Publisher.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
+                if pt == pc:
+                    scores[x] += 2
+                elif pc.find(pt) != -1:
+                    scores[x] += 1
+            if genre != "":
+                gt = genre.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
+                gc = Books[x].Genre.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
+                if gc.find(gt) != -1:
+                    scores[x] += 2
+        for x in range(number):
+            highest = x
+            for y in range(x, number):
+                if scores[y] > scores[highest]:
+                    highest = y
+            if highest != x:
+                temp = scores[x]
+                scores[x] = scores[highest]
+                scores[highest] = temp
+                temp = books[x]
+                books[x] = books[highest]
+                books[highest] = temp
+        self.response.write('{ "books": [')
+        c = 0;
+        x = 0;
+        while (x < number) and (scores[x] != 0):
+            if c == 0:
+                c = 1
+            else:
+                self.response.write(",")
+            self.response.write('{"title": "' + books[x].Title + '",')
+            self.response.write('"author": "' + books[x].Author + '",')
+            self.response.write('"year": "' + str(books[x].Year) + '",')
+            self.response.write('"ISBN": "' + books[x].key().name() + '",')
+            self.response.write('"publisher": "' + books[x].Publisher + '",')
+            self.response.write('"genres": "' + books[x].Genre + '"}') 
+            x += 1
+        self.response.write("]}")
 
 class Login(webapp2.RequestHandler):
     def post(self):
@@ -197,6 +220,7 @@ class GetList(webapp2.RequestHandler):
             self.response.write('"ISBN": "' + bookrec.key().name() + '",')
             self.response.write('"publisher": "' + bookrec.Publisher + '",')
             self.response.write('"genres": "' + bookrec.Genre + '"}')
+        self.response.write("]}")
 
 class AddAdmin(webapp2.RequestHandler): # TODO test handler, delete in final
     def get(self):
@@ -313,6 +337,13 @@ class GetSummary(webapp2.RequestHandler):
         ISBN = self.request.get('ISBN')
         book = Books.get_by_key_name(ISBN)
         self.response.write('{ "Summary": "' + book.Summary + '"}')
+
+class getBook(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers['Content-Tyoe'] = 'application/javascript'
+        ISBN = self.request.get('ISBN')
+        book = Books.get_by_key_name(ISBN)
+        path = book.FilePath
 
 app = webapp2.WSGIApplication([('/', Main),
                                ('/search', Search),
