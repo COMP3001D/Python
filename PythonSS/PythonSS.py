@@ -173,8 +173,8 @@ class Search(webapp2.RequestHandler):
             self.response.write('"year": "' + str(books[x].Year) + '",')
             self.response.write('"ISBN": "' + books[x].key().name() + '",')
             self.response.write('"publisher": "' + books[x].Publisher + '",')
-            self.response.write('"genres": "' + books[x].Genre + '"') 
-            self.response.write('"country": "' + books[x].Country + '"')
+            self.response.write('"genres": "' + books[x].Genre + '",') 
+            self.response.write('"country": "' + books[x].Country + '",')
             self.response.write('"language": "' + books[x].Language + '"}')
             x += 1
         self.response.write("]})")
@@ -253,8 +253,8 @@ class GetList(webapp2.RequestHandler):
             self.response.write('"year": "' + str(bookrec.Year) + '",')
             self.response.write('"ISBN": "' + bookrec.key().name() + '",')
             self.response.write('"publisher": "' + bookrec.Publisher + '",')
-            self.response.write('"genres": "' + bookrec.Genre + '"')
-            self.response.write('"country": "' + bookrec.Country + '"')
+            self.response.write('"genres": "' + bookrec.Genre + '",')
+            self.response.write('"country": "' + bookrec.Country + '",')
             self.response.write('"language": "' + bookrec.Language + '"}')
         self.response.write("]})")
 
@@ -380,8 +380,8 @@ class GetAll(webapp2.RequestHandler):
             self.response.write('"year": "' + str(book.Year) + '",')
             self.response.write('"ISBN": "' + book.key().name() + '",')
             self.response.write('"publisher": "' + book.Publisher + '",')
-            self.response.write('"genres": "' + book.Genre + '"}')
-            self.response.write('"country": "' + book.Country + '"}')
+            self.response.write('"genres": "' + book.Genre + '",')
+            self.response.write('"country": "' + book.Country + '",')
             self.response.write('"language": "' + book.Language + '"}')
         self.response.write(']})')
 
