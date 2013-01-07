@@ -180,7 +180,7 @@ class Search(webapp2.RequestHandler):
         self.response.write("]})")
 
 class Login(webapp2.RequestHandler):
-    def post(self):
+    def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
         username = self.request.get('username')
         passhash = hashlib.sha1(self.request.get('password')).hexdigest()
