@@ -10,6 +10,8 @@ from cStringIO import StringIO
 
 from google.appengine.ext import db
 
+import cgi
+
 class Books(db.Model):
     Title = db.StringProperty()
     Author = db.StringProperty()
@@ -28,6 +30,11 @@ class BookUsers(db.Model):
 class Shelf(db.Model):
     Favourite = db.BooleanProperty()
     TimeStamp = db.DateTimeProperty()
+
+class Admin(db.Model):
+    Username = db.StringProperty()
+    PasswordHash = db.StringProperty()
+    LoggedIn = db.BooleanProperty()
 
 class Main(webapp2.RequestHandler):
     def get(self):
@@ -141,9 +148,9 @@ class Search(webapp2.RequestHandler):
                 if year == books[x].Year:
                     scores[x] += 2
             if ISBN != "":
-                if ISBN == books[x].ISBN:
+                if ISBN == books[x].key().name():
                     scores[x] += 2
-                elif Books[x].find(ISBN) != -1:
+                elif books[x].key().name().find(ISBN) != -1:
                     scores[x] += 1
             if publisher != "":
                 pt = publisher.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
@@ -154,7 +161,7 @@ class Search(webapp2.RequestHandler):
                     scores[x] += 1
             if genre != "":
                 gt = genre.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
-                gc = Books[x].Genre.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
+                gc = books[x].Genre.lower().replace(" ","").replace(".","").replace(",","").replace("-","").replace(":","")
                 if gc.find(gt) != -1:
                     scores[x] += 2
         for x in range(number):
@@ -244,12 +251,12 @@ class MakeFavourite(webapp2.RequestHandler):
 
 class GetList(webapp2.RequestHandler):
     def get(self):
-        self.response.headers['Content-Type'] = 'application/javascript'
+        self.response.headers['Content-Type'] = 'text/plain'
         username = self.request.get('username')
 	callback = self.request.get('callback')
         user = BookUsers.get_by_key_name(username)
         books = db.GqlQuery("SELECT * FROM Shelf WHERE ANCESTOR IS :1", user)
-        c = 0;
+        c = 0
         self.response.write(callback + '({ "books": [')
         for book in books:
             bookrec = Books.get_by_key_name(book.key().name())
@@ -403,6 +410,32 @@ class GetSummary(webapp2.RequestHandler):
         book = Books.get_by_key_name(ISBN)
         self.response.write(callback + '({ "summary": "' + book.Summary + '"})')
 
+class GetByLetter(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers['Content-Type'] = 'application/javascript'
+        letter = self.request.get('letter').lower()
+	callback = self.request.get('callback')
+	books = db.GqlQuery("SELECT * FROM Books")
+	self.response.write(callback + '({ "books" : [')
+	c = 0
+	for book in books:
+	    title = book.Title.lower()
+	    if title[0] == letter:
+	        if c == 0:
+		    c = 1
+		else:
+		    self.response.write(',')
+	        self.response.write('{"title": "' + book.Title + '",')
+                self.response.write('"author": "' + book.Author + '",')
+                self.response.write('"year": "' + str(book.Year) + '",')
+                self.response.write('"ISBN": "' + book.key().name() + '",')
+                self.response.write('"publisher": "' + book.Publisher + '",')
+                self.response.write('"genres": "' + book.Genre + '",')
+                self.response.write('"country": "' + book.Country + '",')
+                self.response.write('"language": "' + book.Language + '"}\n')
+        self.response.write(']})')
+
+
 class GetBook(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -421,7 +454,6 @@ class GetBook(webapp2.RequestHandler):
         device.close()
         content = retstr.getvalue()
         retstr.close()
-	#print content
 	content = content.split('\n')
         self.response.write(callback + '({ "content" : [')
 	c = 0;
@@ -432,6 +464,104 @@ class GetBook(webapp2.RequestHandler):
 	        self.response.write(",\n")
 	    self.response.write(' "' + string + '"')
 	self.response.write(']})')
+
+class AddAdminUser(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers['Content-Type'] = 'text/plain'
+        e = Admin(key_name="admin");
+        e.Username = "Am"
+        e.PasswordHash = hashlib.sha1("12345").hexdigest()
+        e.LoggedIn = False
+        e.put()
+        self.response.write("Done")
+
+class AdminInterface(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers['Content-Type'] = 'text/html'
+        self.response.write("""
+        <html>
+            <head>
+                <title> NetLib </title>
+            </head>
+            <body>
+                <h1> NetLib - Admin Interface </h1>
+                <form action="/authenticate" method="post">
+                    <div>
+                        Username: <input type="text" name="username"> </textarea>
+                    </div>
+                    <div>
+                        Password: <input type="password" name="password"> </textarea>
+                    </div>
+                    <div>
+                        <input type="submit" value="Login">
+                    </div>
+                </form>
+            </body>
+        </html>""")
+
+import urllib
+from google.appengine.api import urlfetch
+class Authenticate(webapp2.RequestHandler):
+    def post(self):
+        self.response.headers['Content-Type'] = 'text/html'
+        username = self.request.get('username')
+        phash = hashlib.sha1(self.request.get('password')).hexdigest()
+        adminAcc = Admin.get_by_key_name('admin')
+        if (username == adminAcc.Username and phash == adminAcc.PasswordHash):
+            adminAcc.LoggedIn = True
+            adminAcc.put()
+            #form_fields = { "hash" : phash }
+            #form_data = urllib.urlencode(form_fields)
+            #headers = {'Content-Type': 'application/x-www-form-urlencode'}
+            #result = urlfetch.fetch(url="http://comp3001teamd.appspot.com/controlPanel", payload=form_data,
+            #method=urlfetch.POST, headers=headers)
+            self.redirect('/controlPanel?hash=' + phash)
+        else:
+            self.response.write("""
+            <html>
+                <head>
+                    <title> NetLib </title>
+                </head>
+                <body>
+                    <div> Incorrect user name or password </div>
+                    <form action="/adminInterface" method="get">
+                        <div><input type="submit" value="Go back"></div>
+                    </form>
+                </body>
+            </html>""")
+
+class ControlPanel(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers['Content-Type'] = 'text/html'
+        phash = self.request.get('hash')
+        adminAcc = Admin.get_by_key_name('admin')
+        if (phash == adminAcc.PasswordHash and adminAcc.LoggedIn):
+            self.response.write("""
+            <html>
+                <head>
+                    <title> NetLib </title>
+                </head>
+                <body>
+                    <h1> NetLib - Admin Interface </h1>
+                    <form action="/adminLogout" method="get">
+                        <div> <input type="submit" value="logout"> </div>
+                    </form>
+                    <br>
+                    <div> Add a new book </div>
+                    <form action="/addNewBook" method=
+                </body>
+            </html>
+            """)
+        else:
+            self.response.write("You don't have permission to view this ")
+
+class AdminLogout(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers['Content-Type'] = 'text/html'
+        adminAcc = Admin.get_by_key_name('admin')
+        adminAcc.LoggedIn = False
+        adminAcc.put()
+        self.redirect('/adminInterface')
 
 app = webapp2.WSGIApplication([('/', Main),
                                ('/search', Search),
@@ -444,6 +574,12 @@ app = webapp2.WSGIApplication([('/', Main),
                                ('/getAll', GetAll),
                                ('/addBooks', AddBooks),
                                ('/getSummary', GetSummary),
-			       ('/getBook', GetBook)],
+			       ('/getBook', GetBook),
+                               ('/getByLetter', GetByLetter),
+                               ('/addAdminUser', AddAdminUser),
+                               ('/adminInterface', AdminInterface),
+                               ('/authenticate', Authenticate),
+                               ('/controlPanel', ControlPanel),
+                               ('/adminLogout', AdminLogout)],
                                 debug = True)
 
