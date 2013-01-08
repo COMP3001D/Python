@@ -78,10 +78,6 @@ true and vice versa
 GetSummary: This is for obtaining the summary for a particular book. It returns a JSONP object containing
 the said summary. It can be accessed through "comp3001teamd,appspot.com/getSummary?ISBN=xyz&callback=xyz"
 
-Get Book: This is for retrieving the contents of a book. It uses the get method and is accesses from the following
-url: "comp3001teamd.appspot.com/getBook?ISBN=xyz&callback=xyz". It return a JSONP object that contains a single
-field called "content". This contains a text string with all the content in it.
-
 Note: In order to view/edit the contents of the datastore by hand, you will need to log into google
 using our group account and go onto the dashboard for the app at "appengine.google.com"
 
