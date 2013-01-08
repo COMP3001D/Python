@@ -421,7 +421,17 @@ class GetBook(webapp2.RequestHandler):
         device.close()
         content = retstr.getvalue()
         retstr.close()
-        self.response.write(callback + '({ "content" : "' + content + '"})')
+	#print content
+	content = content.split('\n')
+        self.response.write(callback + '({ "content" : [')
+	c = 0;
+	for string in content:
+	    if c == 0:
+	        c = 1
+	    else:
+	        self.response.write(",\n")
+	    self.response.write(' "' + string + '"')
+	self.response.write(']})')
 
 app = webapp2.WSGIApplication([('/', Main),
                                ('/search', Search),
