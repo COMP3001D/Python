@@ -22,6 +22,7 @@ class Books(db.Model):
     FilePath = db.StringProperty()
     Country = db.StringProperty()
     Language = db.StringProperty()
+    Reads = db.IntegerProperty()
 
 class BookUsers(db.Model):
     Email = db.EmailProperty()
@@ -275,8 +276,46 @@ class GetList(webapp2.RequestHandler):
                 self.response.write('"genres": "' + bookrec.Genre + '",')
                 self.response.write('"country": "' + bookrec.Country + '",')
 	        self.response.write('"favourite": "' + str(book.Favourite) + '",')
+		self.response.write('"reads": "' + str(book.Reads) + '",')
                 self.response.write('"language": "' + bookrec.Language + '"}')
             self.response.write("]})")
+
+class IncrementRead(webapp2.RequestHandler):
+    def get(self):
+	self.response.headers['Content-Type'] = 'application/javascript'
+        ISBN = self.request.get('ISBN')
+        callback = self.request.get('callback')
+        book = Books.get_by_key_name(ISBN)
+        if book is None:
+            self.response.write(callback + '({ "success" : "0" })')
+        else:
+            book.Reads += 1
+            book.put()
+            self.response.write(callback + '({ "success" : "1" })')
+
+class GetReadOrder(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers['Content-Type'] = 'application/javascript'
+        callback = self.request.get('callback')
+        self.response.write(callback + '({ "books" : [')
+        books = db.GqlQuery("SELECT * FROM Books ORDER BY Reads DESC")
+        c = 0;
+        for book in books:
+            if c == 0:
+                c = 1
+            else:
+                self.response.write(",\n")
+            self.response.write('{"title": "' + book.Title + '",')
+            self.response.write('"author": "' + book.Author + '",')
+            self.response.write('"year": "' + str(book.Year) + '",')
+            self.response.write('"ISBN": "' + book.key().name() + '",')
+            self.response.write('"publisher": "' + book.Publisher + '",')
+            self.response.write('"genres": "' + book.Genre + '",')
+            self.response.write('"country": "' + book.Country + '",')
+            self.response.write('"reads": "' + str(book.Reads) + '",')
+            self.response.write('"language": "' + book.Language + '"}')
+        self.response.write(']})')
+
 
 class AddAdmin(webapp2.RequestHandler): # TODO test handler, delete in final
     def get(self):
@@ -319,6 +358,7 @@ class AddBooks(webapp2.RequestHandler): # TODO test handler, delete in final
         b.FilePath = "a/b"
         b.Country = "UK"
         b.Language = "English"
+	b.Reads = 0
         b.put()
 
         b = Books(key_name = "0747538492")
@@ -331,6 +371,7 @@ class AddBooks(webapp2.RequestHandler): # TODO test handler, delete in final
         b.FilePath = "a/b"
         b.Country = "UK"
         b.Language = "English"
+	b.Reads = 0
         b.put()
 
         b = Books(key_name = "0670899623")
@@ -343,6 +384,7 @@ class AddBooks(webapp2.RequestHandler): # TODO test handler, delete in final
         b.FilePath = "a/c"
         b.Country = "Ireland"
         b.Language = "English"
+	b.Reads = 0
         b.put()
 
         b = Books(key_name = "0786808551")
@@ -355,6 +397,7 @@ class AddBooks(webapp2.RequestHandler): # TODO test handler, delete in final
         b.FilePath = "a/c"
         b.Country = "Ireland"
         b.Language = "English"
+	b.Reads = 0
         b.put() 
 
         b = Books(key_name = "000000000001")
@@ -367,6 +410,7 @@ class AddBooks(webapp2.RequestHandler): # TODO test handler, delete in final
         b.FilePath = "books/TheHobbit.pdf"
         b.Country = "UK"
         b.Language = "English"
+	b.Reads = 0
         b.put()
 
         b = Books(key_name = "000000000002")
@@ -379,6 +423,7 @@ class AddBooks(webapp2.RequestHandler): # TODO test handler, delete in final
         b.FilePath = "a/e"
         b.Country = "UK"
         b.Language = "English"
+	b.Reads = 0
         b.put()
 
         self.response.write("done")
@@ -402,6 +447,7 @@ class GetAll(webapp2.RequestHandler):
             self.response.write('"publisher": "' + book.Publisher + '",')
             self.response.write('"genres": "' + book.Genre + '",')
             self.response.write('"country": "' + book.Country + '",')
+            self.response.write('"reads": "' + str(book.Reads) + '",')
             self.response.write('"language": "' + book.Language + '"}')
         self.response.write(']})')
 
@@ -808,6 +854,7 @@ class AddNewBook(webapp2.RequestHandler):
 				e.Language = language
 				e.FilePath = filepath
 				e.Summary = summary
+				e.Reads = 0
 				e.put()
 				self.response.write("""
 				<html>
@@ -854,6 +901,8 @@ app = webapp2.WSGIApplication([('/', Main),
                                ('/addNewBook', AddNewBook),
 			       ('/deleteBook', DeleteBook),
 			       ('/deleteUser', DeleteUser),
+                               ('/incrementRead', IncrementRead),
+                               ('/getReadOrder', GetReadOrder),
 			       ('/changeAdminDetails', ChangeAdminDetails)],
                                 debug = True)
 
