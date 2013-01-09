@@ -12,6 +12,9 @@ from google.appengine.ext import db
 
 import cgi
 
+# These classes (Model classes) define the kinds of entities that are used in the datastore
+
+# This defines a book entity, it represents a specific book that exists in the library program
 class Books(db.Model):
     Title = db.StringProperty()
     Author = db.StringProperty()
@@ -24,19 +27,26 @@ class Books(db.Model):
     Language = db.StringProperty()
     Reads = db.IntegerProperty()
 
+# This defines the user who will be making use of the program
 class BookUsers(db.Model):
     Email = db.EmailProperty()
     PasswordHash = db.StringProperty()
 
+# This entity defines a book that the user has placed on his/her shelf
+# It's parent entity will be the user that has bookmarked the book and the
+# key name (ISBN number) refers to the book being shelf
 class Shelf(db.Model):
     Favourite = db.BooleanProperty()
     TimeStamp = db.DateTimeProperty()
 
+# This entity describes an admin user. There can only be one of these at any time.
+# This is used to access the server side interface for controlling the datastore
 class Admin(db.Model):
     Username = db.StringProperty()
     PasswordHash = db.StringProperty()
     LoggedIn = db.BooleanProperty()
 
+# This describes how to use each handler - please ignore
 class Main(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/plain'
@@ -97,6 +107,9 @@ Note: comp3001teamd.appspot.com on it's own should not return anything in future
 
 Good luck and good night.""")
 
+# This handler is for searching through the books, there are several properties that can be searched upon.
+# The search method works using a point system, any matching field results in point being allocated to the book
+# The resutls are returned in descending order of points, exluding any books with 0 points
 class Search(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -196,6 +209,7 @@ class Search(webapp2.RequestHandler):
             x += 1
         self.response.write("]})")
 
+# Authenticating a user, it compares the hash of the provided password with the stores hash
 class Login(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -212,6 +226,8 @@ class Login(webapp2.RequestHandler):
             self.response.write("1")
 	self.response.write('"})')
 
+# This is to allow a user to add a book to their shelf. It creates shelf identity if the books
+# requested exists
 class AddToShelf(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -231,6 +247,8 @@ class AddToShelf(webapp2.RequestHandler):
             self.response.write("1")
 	self.response.write('"})')
 
+# This is to allow the user to mark/unmark a shelved book as a favourite.
+# It uses an XOR operator to toggle the value
 class MakeFavourite(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -250,6 +268,7 @@ class MakeFavourite(webapp2.RequestHandler):
 	self.response.write("0")
 	self.response.write('"})')
 
+# This is to fetch the books on the users shelf
 class GetList(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/plain'
@@ -276,10 +295,12 @@ class GetList(webapp2.RequestHandler):
                 self.response.write('"genres": "' + bookrec.Genre + '",')
                 self.response.write('"country": "' + bookrec.Country + '",')
 	        self.response.write('"favourite": "' + str(book.Favourite) + '",')
-		self.response.write('"reads": "' + str(book.Reads) + '",')
+		self.response.write('"reads": "' + str(bookrec.Reads) + '",')
                 self.response.write('"language": "' + bookrec.Language + '"}')
             self.response.write("]})")
 
+# This is to increment the number of times a book has been read. It finds a book by
+# ISBN number and increases the value by 1 if the book exists.
 class IncrementRead(webapp2.RequestHandler):
     def get(self):
 	self.response.headers['Content-Type'] = 'application/javascript'
@@ -293,6 +314,8 @@ class IncrementRead(webapp2.RequestHandler):
             book.put()
             self.response.write(callback + '({ "success" : "1" })')
 
+# This is to retrieve the books in the library in the order of the number of times
+# each book has been read in descending order
 class GetReadOrder(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -316,8 +339,8 @@ class GetReadOrder(webapp2.RequestHandler):
             self.response.write('"language": "' + book.Language + '"}')
         self.response.write(']})')
 
-
-class AddAdmin(webapp2.RequestHandler): # TODO test handler, delete in final
+# This is for adding a user, it is for testing purposes only and should be removed in deployment
+class AddAdmin(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/plain'
         e = BookUsers(key_name = "Am")
@@ -326,6 +349,9 @@ class AddAdmin(webapp2.RequestHandler): # TODO test handler, delete in final
         e.put()
         self.response.write("Done")
 
+# This handler is for registering a new user. It checks if the username is unique
+# and if so, will create a BookUser entity with the username, the password hash and
+# his/her email address
 class Register(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -345,11 +371,12 @@ class Register(webapp2.RequestHandler):
             self.response.write("0")
         self.response.write('"})')
 
+# This is a test handler for adding a specific set of books, should be removed in deployment
 class AddBooks(webapp2.RequestHandler): # TODO test handler, delete in final
     def get(self):
         self.response.headers['Content-Type'] = 'text/plain'
         b = Books(key_name = "0747532699")
-        b.Title = "Harry Potter and the Philosopher's Stone"
+        b.Title = "Philosopher's Stone"
         b.Author = "J. K. Rowling"
         b.Year = 1997
         b.Publisher = "Bloomsbury"
@@ -362,7 +389,7 @@ class AddBooks(webapp2.RequestHandler): # TODO test handler, delete in final
         b.put()
 
         b = Books(key_name = "0747538492")
-        b.Title = "Harry Potter and the Chamber of Secrets"
+        b.Title = "Harry Potter"
         b.Author = "J. K. Rowling"
         b.Year = 1998
         b.Publisher = "Bloomsbury"
@@ -414,13 +441,13 @@ class AddBooks(webapp2.RequestHandler): # TODO test handler, delete in final
         b.put()
 
         b = Books(key_name = "000000000002")
-        b.Title = "A Study in Scarlet"
-        b.Author = "Arthur Conan Doyle"
-        b.Year = 1887
-        b.Publisher = "Ward Lock & Co"
-        b.Genre = "Detective Crime Mystery Novel"
+        b.Title = "A Christmas Carol"
+        b.Author = "Charles Dickens"
+        b.Year = 1843
+        b.Publisher = "Chapman & Hall"
+        b.Genre = "Ghost-Story Christmas"
         b.Summary = "abcdef"
-        b.FilePath = "a/e"
+        b.FilePath = "books/AChristmasCarol.pdf"
         b.Country = "UK"
         b.Language = "English"
 	b.Reads = 0
@@ -428,6 +455,7 @@ class AddBooks(webapp2.RequestHandler): # TODO test handler, delete in final
 
         self.response.write("done")
 
+# This is a handler for retrieving all the books that exist within the system.
 class GetAll(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -451,6 +479,7 @@ class GetAll(webapp2.RequestHandler):
             self.response.write('"language": "' + book.Language + '"}')
         self.response.write(']})')
 
+# This handler is for retrieving the summary of a particular book
 class GetSummary(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -459,6 +488,8 @@ class GetSummary(webapp2.RequestHandler):
         book = Books.get_by_key_name(ISBN)
         self.response.write(callback + '({ "summary": "' + book.Summary + '"})')
 
+# This handler is for retrieving all books that begin with a specific letter
+# This was specifically so as to split the books by letter into multiple tabs
 class GetByLetter(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -484,7 +515,8 @@ class GetByLetter(webapp2.RequestHandler):
                 self.response.write('"language": "' + book.Language + '"}\n')
         self.response.write(']})')
 
-
+# This handler is for retrieving the contents of a book. It uses a pdfreader to extract
+# the content and send it off as a JSON object
 class GetBook(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'application/javascript'
@@ -514,6 +546,7 @@ class GetBook(webapp2.RequestHandler):
 	    self.response.write(' "' + string + '"')
 	self.response.write(']})')
 
+# This is a test handler for adding an admin user - should be removed during deployment
 class AddAdminUser(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/plain'
@@ -524,6 +557,8 @@ class AddAdminUser(webapp2.RequestHandler):
         e.put()
         self.response.write("Done")
 
+# This is the login page for the server side admin interface
+# This can be accessed at comp3001teand.appspot.com/adminInterface
 class AdminInterface(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/html'
@@ -548,6 +583,9 @@ class AdminInterface(webapp2.RequestHandler):
             </body>
         </html>""")
 
+# This handler authenticates a user. If successfull, it will redirect to the main control paner
+# defined below, if not, it will display "incorrect username or password" and provide a button
+# to go back to the login page
 class Authenticate(webapp2.RequestHandler):
     def post(self):
         self.response.headers['Content-Type'] = 'text/html'
@@ -572,6 +610,8 @@ class Authenticate(webapp2.RequestHandler):
                 </body>
             </html>""")
 
+# This is the main control panel and provides various forms for controlling the datastore
+# such as add a new book or delete an existing one.
 class ControlPanel(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/html'
@@ -640,6 +680,7 @@ class ControlPanel(webapp2.RequestHandler):
         else:
             self.response.write("You don't have permission to view this ")
 
+# This is for changing the admin user details.
 class ChangeAdminDetails(webapp2.RequestHandler):
 	def error(self):
 		self.response.headers['Content-Type'] = 'text/html'
@@ -688,6 +729,8 @@ class ChangeAdminDetails(webapp2.RequestHandler):
 		else:
             		self.response.write("You don't have permission to view this ")
 
+# This is for deleting an existing user. If the user exists it will be removed, if not
+# The user will be informed before being linked back to the control panel
 class DeleteUser(webapp2.RequestHandler):
 	def error(self):
 		self.response.headers['Content-Type'] = 'text/html'
@@ -732,6 +775,7 @@ class DeleteUser(webapp2.RequestHandler):
 		else:
             		self.response.write("You don't have permission to view this ")
 
+# This is for deleting an existing book, works the same sort of wat as the handler above
 class DeleteBook(webapp2.RequestHandler):
 	def error(self):
 		self.response.headers['Content-Type'] = 'text/html'
@@ -776,6 +820,8 @@ class DeleteBook(webapp2.RequestHandler):
 		else:
             		self.response.write("You don't have permission to view this ")
 
+# This is for adding a new book to the datastore. It checks if all the fiels have been supplied before creating and 
+# adding a new Book entity
 class AddNewBook(webapp2.RequestHandler):
 	def error(self):
 		self.response.headers['Content-Type'] = 'text/html'
@@ -872,6 +918,7 @@ class AddNewBook(webapp2.RequestHandler):
 	        else:
         	    self.response.write("You don't have permission to view this ")
 
+# This is for logging out, it changes the loggedin state of the user and then redirects to the login page
 class AdminLogout(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/html'
