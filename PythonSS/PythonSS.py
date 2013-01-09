@@ -255,25 +255,28 @@ class GetList(webapp2.RequestHandler):
         username = self.request.get('username')
 	callback = self.request.get('callback')
         user = BookUsers.get_by_key_name(username)
-        books = db.GqlQuery("SELECT * FROM Shelf WHERE ANCESTOR IS :1", user)
-        c = 0
-        self.response.write(callback + '({ "books": [')
-        for book in books:
-            bookrec = Books.get_by_key_name(book.key().name())
-            if c == 0:
-                c = 1
-            else:
-                self.response.write(',')
-            self.response.write('{"title": "' + bookrec.Title + '",')
-            self.response.write('"author": "' + bookrec.Author + '",')
-            self.response.write('"year": "' + str(bookrec.Year) + '",')
-            self.response.write('"ISBN": "' + bookrec.key().name() + '",')
-            self.response.write('"publisher": "' + bookrec.Publisher + '",')
-            self.response.write('"genres": "' + bookrec.Genre + '",')
-            self.response.write('"country": "' + bookrec.Country + '",')
-	    self.response.write('"favourite": "' + book.Favourite + '",')
-            self.response.write('"language": "' + bookrec.Language + '"}')
-        self.response.write("]})")
+	if user is None:
+	    self.response.write(callback + '({ "books": "error" })')
+	else:
+            books = db.GqlQuery("SELECT * FROM Shelf WHERE ANCESTOR IS :1", user)
+            c = 0
+            self.response.write(callback + '({ "books": [')
+            for book in books:
+                bookrec = Books.get_by_key_name(book.key().name())
+                if c == 0:
+                    c = 1
+                else:
+                    self.response.write(',')
+                self.response.write('{"title": "' + bookrec.Title + '",')
+                self.response.write('"author": "' + bookrec.Author + '",')
+                self.response.write('"year": "' + str(bookrec.Year) + '",')
+                self.response.write('"ISBN": "' + bookrec.key().name() + '",')
+                self.response.write('"publisher": "' + bookrec.Publisher + '",')
+                self.response.write('"genres": "' + bookrec.Genre + '",')
+                self.response.write('"country": "' + bookrec.Country + '",')
+	        self.response.write('"favourite": "' + str(book.Favourite) + '",')
+                self.response.write('"language": "' + bookrec.Language + '"}')
+            self.response.write("]})")
 
 class AddAdmin(webapp2.RequestHandler): # TODO test handler, delete in final
     def get(self):
