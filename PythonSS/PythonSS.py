@@ -502,8 +502,6 @@ class AdminInterface(webapp2.RequestHandler):
             </body>
         </html>""")
 
-import urllib
-from google.appengine.api import urlfetch
 class Authenticate(webapp2.RequestHandler):
     def post(self):
         self.response.headers['Content-Type'] = 'text/html'
@@ -513,11 +511,6 @@ class Authenticate(webapp2.RequestHandler):
         if (username == adminAcc.Username and phash == adminAcc.PasswordHash):
             adminAcc.LoggedIn = True
             adminAcc.put()
-            #form_fields = { "hash" : phash }
-            #form_data = urllib.urlencode(form_fields)
-            #headers = {'Content-Type': 'application/x-www-form-urlencode'}
-            #result = urlfetch.fetch(url="http://comp3001teamd.appspot.com/controlPanel", payload=form_data,
-            #method=urlfetch.POST, headers=headers)
             self.redirect('/controlPanel?hash=' + phash)
         else:
             self.response.write("""
@@ -549,14 +542,288 @@ class ControlPanel(webapp2.RequestHandler):
                     <form action="/adminLogout" method="get">
                         <div> <input type="submit" value="logout"> </div>
                     </form>
-                    <br>
-                    <div> Add a new book </div>
-                    <form action="/addNewBook" method=
+
+                    <br><hr>
+
+                    <div><h3> Add a new book </h3></div>
+                    <form action="/addNewBook" method="get">
+    		        <div><input type="hidden" name="hash" value='""" + phash + """'></div>
+		        <div><input type="text" name="title"> Title </div>
+			<div><input type="text" name="author"> Author </div>
+			<div><input type="text" name="year"> Year </div>
+                        <div><input type="text" name="publisher"> Publisher </div>
+                        <div><input type="text" name="genre"> Genre </div>
+                        <div><input type="text" name="country"> Country </div>
+                        <div><input type="text" name="language"> Language </div>
+                        <div><input type="text" name="filepath"> Filepath </div>
+                        <div><textarea name="summary" rows="5" cols="17"> </textarea> Summary </div>
+			<div><input type="text" name="ISBN"> ISBN </div>
+                        <div><input type="submit" value="Add Book"></div>
+		    </form>
+
+		    <br><hr>
+
+		    <div><h3> Delete a book </h3></div>
+		    <form action="/deleteBook" method="get">
+		        <div><input type="hidden" name="hash" value='""" + phash + """'></div>
+		    	<div><input type="text" name="ISBN"> ISBN of book to be deleted </div>
+			<div><input type="submit" value="Delete"></div>
+		    </form>
+
+		    <br><hr>
+
+		    <div><h3> Delete a user </h3></div>
+		    <form action="/deleteUser" method="get">
+		        <div><input type="hidden" name="hash" value='""" + phash + """'></div>
+		        <div><input type="text" name="username"> Username of user to be deleted </div>
+			<div><input type="submit" value="Delete"></div>
+		    </form>
+
+		    <br><hr>
+
+		    <div><h3> Change admin username/password </h3></div>
+		    <form action="/changeAdminDetails" method="get">
+		        <div><input type="hidden" name="hash" value='""" + phash + """'></div>
+		        <div><input type="text" name="username"> Username </div>
+			<div><input type="password" name="password"> Password </div>
+			<div><input type="submit" value="Change"></div>
+		    </form>
                 </body>
             </html>
             """)
         else:
             self.response.write("You don't have permission to view this ")
+
+class ChangeAdminDetails(webapp2.RequestHandler):
+	def error(self):
+		self.response.headers['Content-Type'] = 'text/html'
+		self.response.write("""
+		<html>
+			<head>
+				<title> NetLib </title>
+			</head>
+			<body>
+				Error in submitted information
+				<form action="/controlPanel" method="get">
+				<div><input type="hidden" name="hash" value='""" + self.request.get('hash') + """'></div>
+				<div><input type="submit" value="Back"></div>
+				</form>
+			</body>
+		</html>""")
+
+	def get(self):
+		self.response.headers['Content-Type'] = 'text/html'
+		phash = self.request.get('hash')
+		adminAcc = Admin.get_by_key_name('admin')
+	        if (phash == adminAcc.PasswordHash and adminAcc.LoggedIn):
+			username = self.request.get('username')
+			password = self.request.get('password')
+			if username == "" and password == "":
+				self.error()
+			else:
+				if username != "":
+					adminAcc.Username = username
+				if password != "":
+					adminAcc.PasswordHash = hashlib.sha1(password).hexdigest()
+				adminAcc.put()
+				self.response.write("""
+				<html>
+					<head>
+						<title> NetLib </title>
+					</head>
+					<body>
+						Admin details updated
+						<form action="/controlPanel" method="get">
+						<div><input type="hidden" name="hash" value='""" + adminAcc.PasswordHash + """'></div>
+						<div><input type="submit" value="Back"></div>
+						</form>
+					</body>
+				</html>""")
+		else:
+            		self.response.write("You don't have permission to view this ")
+
+class DeleteUser(webapp2.RequestHandler):
+	def error(self):
+		self.response.headers['Content-Type'] = 'text/html'
+		self.response.write("""
+		<html>
+			<head>
+				<title> NetLib </title>
+			</head>
+			<body>
+				Error in submitted information
+				<form action="/controlPanel" method="get">
+				<div><input type="hidden" name="hash" value='""" + self.request.get('hash') + """'></div>
+				<div><input type="submit" value="Back"></div>
+				</form>
+			</body>
+		</html>""")
+
+	def get(self):
+		self.response.headers['Content-Type'] = 'text/html'
+		phash = self.request.get('hash')
+		adminAcc = Admin.get_by_key_name('admin')
+	        if (phash == adminAcc.PasswordHash and adminAcc.LoggedIn):
+			username = self.request.get('username')
+			user = BookUsers.get_by_key_name(username)
+			if user is None:
+				self.error()
+			else:
+				user.delete()
+				self.response.write("""
+				<html>
+					<head>
+						<title> NetLib </title>
+					</head>
+					<body>
+						The User has been deleted
+						<form action="/controlPanel" method="get">
+						<div><input type="hidden" name="hash" value='""" + phash + """'></div>
+						<div><input type="submit" value="Back"></div>
+						</form>
+					</body>
+				</html>""")
+		else:
+            		self.response.write("You don't have permission to view this ")
+
+class DeleteBook(webapp2.RequestHandler):
+	def error(self):
+		self.response.headers['Content-Type'] = 'text/html'
+		self.response.write("""
+		<html>
+			<head>
+				<title> NetLib </title>
+			</head>
+			<body>
+				Error in submitted information
+				<form action="/controlPanel" method="get">
+				<div><input type="hidden" name="hash" value='""" + self.request.get('hash') + """'></div>
+				<div><input type="submit" value="Back"></div>
+				</form>
+			</body>
+		</html>""")
+
+	def get(self):
+		self.response.headers['Content-Type'] = 'text/html'
+		phash = self.request.get('hash')
+		adminAcc = Admin.get_by_key_name('admin')
+	        if (phash == adminAcc.PasswordHash and adminAcc.LoggedIn):
+			ISBN = self.request.get('ISBN')
+			book = Books.get_by_key_name(ISBN)
+			if book is None:
+				self.error()
+			else:
+				book.delete()
+				self.response.write("""
+				<html>
+					<head>
+						<title> NetLib </title>
+					</head>
+					<body>
+						The Book has been deleted
+						<form action="/controlPanel" method="get">
+						<div><input type="hidden" name="hash" value='""" + phash + """'></div>
+						<div><input type="submit" value="Back"></div>
+						</form>
+					</body>
+				</html>""")
+		else:
+            		self.response.write("You don't have permission to view this ")
+
+class AddNewBook(webapp2.RequestHandler):
+	def error(self):
+		self.response.headers['Content-Type'] = 'text/html'
+		self.response.write("""
+		<html>
+			<head>
+				<title> NetLib </title>
+			</head>
+			<body>
+				Error in submitted information
+				<form action="/controlPanel" method="get">
+				<div><input type="hidden" name="hash" value='""" + self.request.get('hash') + """'></div>
+				<div><input type="submit" value="Back"></div>
+				</form>
+			</body>
+		</html>""")
+
+	def get(self):
+		self.response.headers['Content-Type'] = 'text/html'
+		phash = self.request.get('hash')
+		adminAcc = Admin.get_by_key_name('admin')
+        	if (phash == adminAcc.PasswordHash and adminAcc.LoggedIn):
+			title = self.request.get('title')
+			bad = False
+			if title == "":
+				self.response.write("title")
+				bad = True
+			author = self.request.get('author')
+			if author == "":
+				self.response.write("author")
+				bad = True
+			year = self.request.get('year')
+			try:
+				int(year)
+			except Error:
+				self.response.write("year")
+				bad = True
+			publisher = self.request.get('publisher')
+			if publisher == "":
+				self.response.write("pub")
+				bad = True
+			genre = self.request.get('genre')
+			if genre == "":
+				self.response.write("gen")
+				bad = True
+			country = self.request.get('country')
+			if country == "":
+				self.response.write("country")
+				bad = True
+			language = self.request.get('language')
+			if language == "":
+				self.response.write("lang")
+				bad = True
+			filepath = self.request.get('filepath')
+			if filepath == "":
+				self.response.write("fp")
+				bad = True
+			ISBN = self.request.get('ISBN')
+			if ISBN == "":
+				self.response.write("isbn")
+				bad = True
+			summary = self.request.get('summary')
+			if summary == "":
+				self.response.write("sum")
+				bad = True
+			if bad:
+				self.error()
+			else:
+				e = Books(key_name=ISBN)
+				e.Title = title
+				e.Author = author
+				e.Year = int(year)
+				e.Publisher = publisher
+				e.Genre = genre
+				e.Country = country
+				e.Language = language
+				e.FilePath = filepath
+				e.Summary = summary
+				e.put()
+				self.response.write("""
+				<html>
+					<head>
+						<title> NetLib </title>
+					</head>
+					<body>
+						The Book has been added
+						<form action="/controlPanel" method="get">
+						<div><input type="hidden" name="hash" value='""" + phash + """'></div>
+						<div><input type="submit" value="Back"></div>
+						</form>
+					</body>
+				</html>""")
+	        else:
+        	    self.response.write("You don't have permission to view this ")
 
 class AdminLogout(webapp2.RequestHandler):
     def get(self):
@@ -583,6 +850,10 @@ app = webapp2.WSGIApplication([('/', Main),
                                ('/adminInterface', AdminInterface),
                                ('/authenticate', Authenticate),
                                ('/controlPanel', ControlPanel),
-                               ('/adminLogout', AdminLogout)],
+                               ('/adminLogout', AdminLogout),
+                               ('/addNewBook', AddNewBook),
+			       ('/deleteBook', DeleteBook),
+			       ('/deleteUser', DeleteUser),
+			       ('/changeAdminDetails', ChangeAdminDetails)],
                                 debug = True)
 
